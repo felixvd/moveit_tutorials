@@ -1,7 +1,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2019, who?
+*  Copyright (c) 2019, Felix von Drigalski
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -62,7 +62,7 @@ bool moveToCartPose(geometry_msgs::PoseStamped pose, moveit::planning_interface:
   return false;
 }
 
-void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface)
+void setupCollisionObjects(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface)
 {
   // Create two objects
   double z_offset_box = .25;
@@ -142,13 +142,13 @@ void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& pla
   cylinder.subframe_poses[0].orientation = tf2::toMsg(orientation);
 
   // Publish each object
-  moveit_msgs::CollisionObject co;
-  co = box;
-  co.operation = moveit_msgs::CollisionObject::ADD;
-  planning_scene_interface.applyCollisionObject(co);
-  co = cylinder;
-  co.operation = moveit_msgs::CollisionObject::ADD;
-  planning_scene_interface.applyCollisionObject(co);
+  moveit_msgs::CollisionObject co1, co2;
+  co1.id = "box";
+  co1.operation = moveit_msgs::CollisionObject::ADD;
+  co2.id = "cylinder";
+  co2.operation = moveit_msgs::CollisionObject::ADD;
+  std::vector<moveit_msgs::CollisionObject> collision_objects = {co1, co2};
+  planning_scene_interface.applyCollisionObjects(collision_objects);
 }
 
 int main(int argc, char** argv)
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
   group.setPlanningTime(10.0);
 
   // Prepare scene (spawn objects and attach cylinder to robot)
-  addCollisionObjects(planning_scene_interface);
+  setupCollisionObjects(planning_scene_interface);
   moveit_msgs::AttachedCollisionObject att_coll_object;
   att_coll_object.object.id = "cylinder";
   att_coll_object.link_name = "panda_hand";
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
     else if (c == 1)
     {
       ROS_INFO_STREAM("Respawning test box and cylinder.");
-      addCollisionObjects(planning_scene_interface);
+      setupCollisionObjects(planning_scene_interface);
     }
     else if (c == 2)
     {
@@ -290,13 +290,13 @@ int main(int argc, char** argv)
         att_coll_object.object.operation = att_coll_object.object.REMOVE;
         planning_scene_interface.applyAttachedCollisionObject(att_coll_object);
 
-        moveit_msgs::CollisionObject co;
-        co.id = "box";
-        co.operation = moveit_msgs::CollisionObject::REMOVE;
-        planning_scene_interface.applyCollisionObject(co);
-
-        co.id = "cylinder";
-        co.operation = moveit_msgs::CollisionObject::REMOVE;
+        moveit_msgs::CollisionObject co1, co2;
+        co1.id = "box";
+        co1.operation = moveit_msgs::CollisionObject::REMOVE;
+        co2.id = "cylinder";
+        co2.operation = moveit_msgs::CollisionObject::REMOVE;
+        std::vector<moveit_msgs::CollisionObject> collision_objects = {co1, co2};
+        planning_scene_interface.applyCollisionObjects(collision_objects);
       }
       catch (const std::exception& exc)
       {
