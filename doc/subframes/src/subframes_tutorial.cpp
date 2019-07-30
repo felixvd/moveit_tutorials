@@ -45,25 +45,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 
-// BEGIN_SUB_TUTORIAL intro
-//
-// What are subframes?
-// ^^^^^^^^^^^^^^^^^^^^
-// Subframes are frames that are defined on CollisionObjects.
-//
-// They can be used to define points of interest on objects that you place in the scene, such as
-// the opening of a bottle, the the tip of a screwdriver, or the head of a screw.
-//
-// Subframes can be used for planning, to write robot instructions such as "pick up the bottle, then 
-// move the opening under the spout of the tap", or "pick up the screwdriver, then place it above 
-// the head of the screw". 
-// 
-// Writing code that focuses on the object that the robot manipulates is not only
-// more readable, but also more robust and portable between robots.
-
-// END_SUB_TUTORIAL
-
-
 bool moveToCartPose(geometry_msgs::PoseStamped pose, moveit::planning_interface::MoveGroupInterface& group,
                     std::string end_effector_link)
 {
@@ -74,7 +55,7 @@ bool moveToCartPose(geometry_msgs::PoseStamped pose, moveit::planning_interface:
   //
   // Creating the planning request
   // ^^^^^^^^^^^^^^^^^^^^
-  // To use subframes of objects that are attached to the robot, you need to set the end effector of the 
+  // To use subframes of objects that are attached to the robot in planning, you need to set the end effector of the 
   // movegruop to the subframe of the object. The format has to be "object_name/subframe_name", as shown
   // in the line saying "Example 1":
 
@@ -111,7 +92,7 @@ void spawnCollisionObjects(moveit::planning_interface::PlanningSceneInterface& p
   //
   // Defining a CollisionObject with subframes
   // ^^^^^^^^^^^^^^^^^^^^
-  // First, we define the CollisionObject as usual:
+  // First, we start defining the CollisionObject as usual:
   moveit_msgs::CollisionObject box;
   box.id = "box";
   box.header.frame_id = "panda_hand";
@@ -124,16 +105,11 @@ void spawnCollisionObjects(moveit::planning_interface::PlanningSceneInterface& p
   box.primitives[0].dimensions[2] = 0.02;
   box.primitive_poses[0].position.z = z_offset_box;
 
-  // Then, we define the subframes. First, the vector is resized to fit the number of frames we want:
-  box.subframe_poses.resize(5);
-  box.subframe_names.resize(5);
-
-  // Then, we add each subframe to the object. The subframes are defined in the frame_id coordinate system,
-  // just like the shapes that make up the object.
-
-  // Each subframe consists of a name and a pose. In this tutorial, we rotate the z-axis of all 
-  // the subframes to point away from the object.
-  // This is not strictly necessary, but it is helpful to follow a convention and avoids confusion when
+  // Next, we define the subframes of the CollisionObject. The subframes are defined in the frame_id coordinate system,
+  // just like the shapes that make up the object. Each subframe consists of a name and a pose. 
+  // In this tutorial, we set the orientation of the subframes so that the z-axis of the subframe
+  // points away from the object.
+  // This is not strictly necessary, but it is helpful to follow a convention, and it avoids confusion when
   // setting the orientation of the target pose later on.
   box.subframe_names[0] = "bottom";
   box.subframe_poses[0].position.y = -.05;
@@ -196,7 +172,7 @@ void spawnCollisionObjects(moveit::planning_interface::PlanningSceneInterface& p
   cylinder.subframe_poses[0].orientation = tf2::toMsg(orientation);
 
   // BEGIN_SUB_TUTORIAL object2
-  // Lastly, the objects are published to the PlanningScene.
+  // Lastly, the objects are published to the PlanningScene. In this tutorial, we publish a box and a cylinder.
   box.operation = moveit_msgs::CollisionObject::ADD;
   cylinder.operation = moveit_msgs::CollisionObject::ADD;
   std::vector<moveit_msgs::CollisionObject> collision_objects = {box, cylinder};
@@ -217,8 +193,10 @@ int main(int argc, char** argv)
   moveit::planning_interface::MoveGroupInterface group("panda_arm");
   group.setPlanningTime(10.0);
 
-  // Prepare the scene
+  // BEGIN_SUB_TUTORIAL sceneprep1
+  // Preparing the scene
   // ^^^^^^^^^^^^^^^^^^^^
+  // 
   // Spawn the objects in the planning scene, then attach the cylinder to the robot
   spawnCollisionObjects(planning_scene_interface);
   moveit_msgs::AttachedCollisionObject att_coll_object;
@@ -227,20 +205,24 @@ int main(int argc, char** argv)
   att_coll_object.object.operation = att_coll_object.object.ADD;
   ROS_INFO_STREAM("Attaching cylinder to robot.");
   planning_scene_interface.applyAttachedCollisionObject(att_coll_object);
+  // END_SUB_TUTORIAL
 
-  //---
-  int character_input;
+  // Define a pose in the robot base 
   tf2::Quaternion orientation, orientation2, target_orientation;
-  geometry_msgs::PoseStamped some_pose, temp_pose_stamped;
-  some_pose.header.frame_id = "panda_link0";
-  some_pose.pose.position.y = -.4;
-  some_pose.pose.position.z = .3;
+  geometry_msgs::PoseStamped fixed_pose, temp_pose_stamped;
+  fixed_pose.header.frame_id = "panda_link0";
+  fixed_pose.pose.position.y = -.4;
+  fixed_pose.pose.position.z = .3;
   orientation.setRPY(0, (-20.0 / 180.0 * M_PI), 0);
-  some_pose.pose.orientation = tf2::toMsg(orientation);
+  fixed_pose.pose.orientation = tf2::toMsg(orientation);
 
+  // CALL_SUB_TUTORIAL quaternions1
+  // Setting the orientation
+  // ^^^^^^^^^^^^^^^^^^^^
   tf2::Quaternion flip_around_y;    // This is used to rotate the orientation of the target pose.
   flip_around_y.setRPY(0, (180.0 / 180.0 * M_PI), 0);
 
+  int character_input;
   while (ros::ok())
   {
     ROS_INFO("==========================\n"
@@ -320,12 +302,12 @@ int main(int argc, char** argv)
     else if (character_input == 7)
     {
       ROS_INFO_STREAM("Moving to a pose with robot wrist");
-      moveToCartPose(some_pose, group, "panda_hand");
+      moveToCartPose(fixed_pose, group, "panda_hand");
     }
     else if (character_input == 8)
     {
       ROS_INFO_STREAM("Moving to a pose with cylinder tip");
-      moveToCartPose(some_pose, group, "cylinder/tip");
+      moveToCartPose(fixed_pose, group, "cylinder/tip");
     }
     else if (character_input == 10)
     {
@@ -379,7 +361,23 @@ int main(int argc, char** argv)
   return 0;
 }
 
-// BEGIN_SUB_TUTORIAL outro
+
+
+// BEGIN_TUTORIAL
+// CALL_SUB_TUTORIAL object1
+// CALL_SUB_TUTORIAL object2
+// CALL_SUB_TUTORIAL plan1
+//
+// Interactively testing the robot
+// ^^^^^^^^^^^^^
+// CALL_SUB_TUTORIAL sceneprep1
+//
+// CALL_SUB_TUTORIAL quaternions1
+// CALL_SUB_TUTORIAL quaternions2
+//
+// Visualizing subframes
+// ^^^^^^^^^^^^^^^^^^^^
+// There is currently no visualization for subframes, but pull requests for this feature are welcome.
 //
 // Technical notes
 // ^^^^^^^^^^^^^^^^^^^^
@@ -387,24 +385,6 @@ int main(int argc, char** argv)
 // If you need the transformation to a subframe, you can obtain it from the PlanningScene's 
 // CollisionRobot using the getFrameTransform function. This returns an Eigen::Isometry3d object, 
 // from which you can extract translation and quaternion (see https://eigen.tuxfamily.org/dox/group__TutorialGeometry.html ).
-// The translation and quaternion can then be used to create the Transform and add it to your TFListener.
-// 
-// 
-
-// END_SUB_TUTORIAL
-
-
-// BEGIN_TUTORIAL
-// CALL_SUB_TUTORIAL intro
-// CALL_SUB_TUTORIAL object1
-// CALL_SUB_TUTORIAL object2
+// The translation and quaternion can then be used to create the Transform and to add it to your TFListener.
 //
-// Testing the robot 
-// ^^^^^^^^^^^^^
-// CALL_SUB_TUTORIAL pick1
-// openGripper function
-// """"""""""""""""""""
-// CALL_SUB_TUTORIAL open_gripper
-//
-// CALL_SUB_TUTORIAL outro
 // END_TUTORIAL
