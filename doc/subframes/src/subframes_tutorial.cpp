@@ -43,6 +43,8 @@
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 
+#include <geometric_shapes/shape_operations.h>
+
 // TF2
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -102,6 +104,9 @@ void spawnCollisionObjects(moveit::planning_interface::PlanningSceneInterface& p
   box.pose.position.z = z_offset_box;
   box.pose.orientation.w = 1.0;  // Neutral orientation
 
+  box.visual_geometry_mesh_url = "package://moveit_tutorials/doc/subframes/meshes/pin.stl";
+  box.visual_geometry_pose.orientation.w = 1.0;
+
   box.primitives.resize(1);
   box.primitive_poses.resize(1);
   box.primitives[0].type = box.primitives[0].BOX;
@@ -144,6 +149,10 @@ void spawnCollisionObjects(moveit::planning_interface::PlanningSceneInterface& p
   moveit_msgs::CollisionObject cylinder;
   cylinder.id = "cylinder";
   cylinder.header.frame_id = "panda_hand";
+
+  cylinder.visual_geometry_mesh_url = "package://moveit_tutorials/doc/subframes/meshes/pen.dae";
+  cylinder.visual_geometry_pose.orientation.w = 1.0;
+
   cylinder.pose.position.z = z_offset_cylinder;
   orientation.setRPY(0, 90.0 / 180.0 * M_PI, 0);
   cylinder.pose.orientation = tf2::toMsg(orientation);
