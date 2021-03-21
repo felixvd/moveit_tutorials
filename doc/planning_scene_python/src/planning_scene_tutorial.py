@@ -29,8 +29,10 @@ def main():
     # this tutorial, we will instantiate a PlanningScene class directly,
     # but this method of instantiation is only intended for illustration.
 
-    urdf_path = '/opt/ros/noetic/share/moveit_resources_panda_description/urdf/panda.urdf'
-    srdf_path = '/opt/ros/noetic/share/moveit_resources_panda_moveit_config/config/panda.srdf'
+    # urdf_path = 'package://moveit_resources_panda_description/urdf/panda.urdf'
+    # srdf_path = 'package://moveit_resources_panda_moveit_config/config/panda.srdf'
+    urdf_path = '/root/ws_moveit/src/moveit_resources/panda_description/urdf/panda.urdf'
+    srdf_path = '/root/ws_moveit/src/moveit_resources/panda_moveit_config/config/panda.srdf'
     kinematic_model = moveit.core.load_robot_model(urdf_path, srdf_path)
     planning_scene = PlanningScene(kinematic_model, collision_detection.World())
     current_state = planning_scene.getCurrentStateNonConst()
